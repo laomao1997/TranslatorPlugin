@@ -1,0 +1,35 @@
+<idea-plugin>
+  <id>com.your.company.unique.plugin.id</id>
+  <name>Hexin Flush Translator</name>
+  <version>1.0</version>
+  <vendor email="zhangjinghao@myhexin.com" url="https://www.hexin.com">Hexin Flush</vendor>
+
+  <description>
+    Translator for Hexin Flush Android application developers.
+  </description>
+
+  <change-notes>
+    Beta. Translator for Hexin Flush Android application developers.
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="173.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+    <action id="FlushTranslator.Translator" class="io.github.laomao1997.TranslateAction" text="Translator"
+            description="Translator for Hexin Flush developer.">
+      <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="Generate"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="alt T"/>
+    </action>
+  </actions>
+
+</idea-plugin>
