@@ -16,6 +16,7 @@ import com.zhy.http.okhttp.callback.StringCallback;
 import okhttp3.Call;
 import okhttp3.MediaType;
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -40,15 +41,24 @@ public class TranslateAction extends AnAction {
             return;
         }
         System.out.println("选中文本：" + selectedText + " 开始查询...");
-        // TODO: 2. 查询
+        // 查询
+        if (selectedText.isEmpty()) {
+            return;
+        }
         String requestJson;
         try {
             requestJson = buildRequestJson(selectedText).toString();
         } catch (JSONException e1) {
             System.out.println(Arrays.toString(e1.getStackTrace()));
-            requestJson = "";
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put("pattern", selectedText);
+            } catch (JSONException exception) {
+                exception.printStackTrace();
+            }
+            requestJson = jsonObject.toString();
         }
-        String url = "";
+        String url = "http://47.93.58.173:8080/Dictionary/dictionary/query";
         // https://github.com/hongyangAndroid/okhttputils
         OkHttpUtils.postString()
                 .url(url)
@@ -63,15 +73,15 @@ public class TranslateAction extends AnAction {
 
                     @Override
                     public void onResponse(String s, int i) {
-                        // TODO: 3. 解析查询返回的结果
+                        // 解析查询返回的结果
                         String parsedResultString;
                         try {
                             parsedResultString = parseResult(s);
                         } catch (Exception exception) {
                             parsedResultString = "";
                         }
-                        // TODO: 4. 展示结果
-                        showPopup(editor, selectedText + "\n" + parsedResultString);
+                        // 展示结果
+                        showPopup(editor, parsedResultString);
                     }
                 });
 
@@ -81,35 +91,71 @@ public class TranslateAction extends AnAction {
         return new JSONObject().put("pattern", pattern);
     }
 
-    /**
-     * {
-     *     "error_code": "0",
-     *     "error_msg": "",
-     *     "pattern": "GG",
-     *     "content": [
-     *         {
-     *             "name_cn": "港股",
-     *             "name_en": "GG",
-     *             "explanation": "港股，是指在中华人民共和国香港特别行政区香港联合交易所上市的股票。"
-     *         },
-     *         {
-     *             "name_cn": "个股",
-     *             "name_en": "GG",
-     *             "explanation": "指某一只股票。"
-     *         },
-     *         {
-     *             "name_cn": "港股通",
-     *             "name_en": "GGT",
-     *             "explanation": "港股通，是指投资者委托上交所会员，通过上交所证券交易服务公司，向联交所进行申报，买卖规定范围内的联交所上市股票。"
-     *         }
-     *     ]
-     * }
-     * @param result
-     * @return
-     * @throws Exception
-     */
-    private String parseResult(String result) throws Exception {
-        return result;
+    private String parseResult(String response) throws Exception {
+        System.out.println("Result: " + response);
+        StringBuilder resultBuilder = new StringBuilder();
+        try {
+            JSONObject resultJson = new JSONObject(response);
+            String statusString = getStatusCode(resultJson);
+            if (statusString == null || !statusString.equals("0")) {
+                String message = getStatusMsg(resultJson);
+                if (message == null || message.isEmpty()) {
+                    throw new Exception("Message is null.");
+                }
+                return message;
+            }
+            JSONObject dataJson = getData(resultJson);
+            if (dataJson == null) {
+                throw new JSONException("Data is null.");
+            }
+            String pattern = getPattern(dataJson);
+            if (pattern == null || pattern.isEmpty()) {
+                throw new JSONException("pattern is null.");
+            }
+            resultBuilder.append("<h1>").append(pattern).append("</h1>").append("\n");
+            JSONArray dataModelsJsonArray = getDataModels(dataJson);
+            if (dataModelsJsonArray == null) {
+                throw new JSONException("dataModels is null.");
+            }
+            resultBuilder.append("<ul>");
+            for (int i = 0; i < dataModelsJsonArray.length(); i++) {
+                JSONObject dataModelJson = dataModelsJsonArray.optJSONObject(i);
+                if (dataModelJson == null) {
+                    throw new JSONException("dataModelJson is null.");
+                }
+                DataModel dataModel = DataModel.fromJson(dataModelJson);
+                if (dataModel == null) {
+                    throw new JSONException("dataModel is null.");
+                }
+                System.out.println(dataModel.toString());
+                resultBuilder.append(dataModel.toBeautifiedString());
+            }
+            resultBuilder.append("</ul>");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+        return resultBuilder.toString();
+    }
+
+    private String getStatusCode(JSONObject jsonObject) {
+        return jsonObject.optString("status");
+    }
+
+    private String getStatusMsg(JSONObject jsonObject) {
+        return jsonObject.optString("message");
+    }
+
+    private JSONObject getData(JSONObject jsonObject) {
+        return jsonObject.optJSONObject("data");
+    }
+
+    private String getPattern(JSONObject jsonObject) {
+        return jsonObject.optString("pattern");
+    }
+
+    private JSONArray getDataModels(JSONObject jsonObject) {
+        return jsonObject.optJSONArray("dataModels");
     }
 
     private void showPopup(Editor editor, String selectedText) {
@@ -120,7 +166,7 @@ public class TranslateAction extends AnAction {
                 BalloonBuilder builder = factory.createHtmlTextBalloonBuilder(selectedText, null,
                         new JBColor(new Color(188, 238, 188), new Color(73, 120, 73)), null);
 
-                builder.setFadeoutTime(5000) // 无操作5秒后隐藏
+                builder.setFadeoutTime(10000) // 无操作10秒后隐藏
                         .createBalloon() // 创建气泡
                         .show(factory.guessBestPopupLocation(editor), Balloon.Position.below); // 指定位置显示气泡
             }
