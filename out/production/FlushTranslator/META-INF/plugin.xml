@@ -28,7 +28,7 @@
     <action id="FlushTranslator.Translator" class="io.github.laomao1997.TranslateAction" text="手炒翻译"
             description="Translator for Hexin Flush developer.">
       <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="Generate"/>
-      <keyboard-shortcut keymap="$default" first-keystroke="ctrl T"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl F10"/>
     </action>
   </actions>
 
